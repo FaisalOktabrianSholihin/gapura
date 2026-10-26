@@ -1,58 +1,70 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# GAPURA — Gerbang Administrasi & Pelayanan Umum Terpadu
+Website Bagian Umum PT Mitratani Dua Tujuh (Laravel + MySQL, terhubung ke `db_indukk`).
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Modul: **SPPD** (pengajuan → ACC/revisi/tolak → cetak dengan QR validasi) dan **Monitoring Lingkungan**
+(Dashboard, IPAL, Checklist Cemaran B3, Logbook Limbah B3, Limbah Non-B3).
 
-## About Laravel
-
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
-
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
-
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
-
+## Instalasi (folder ini adalah "overlay" untuk proyek Laravel baru)
 ```bash
-composer require laravel/boost --dev
+composer create-project laravel/laravel gapura
+cd gapura
+composer require bacon/bacon-qr-code            # pembuat QR (SVG, tanpa ekstensi tambahan)
 
-php artisan boost:install
+# salin isi folder ini ke dalam proyek (timpa jika ditanya): app/ config/ database/ public/ resources/ routes/
 ```
+`.env`:
+```
+APP_NAME=GAPURA
+APP_LOCALE=id
+APP_TIMEZONE=Asia/Jakarta
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_DATABASE=gapura          # tabel GAPURA; data induk dibaca via koneksi "indukk" (db_indukk)
+DB_USERNAME=root
+DB_PASSWORD=
+GAPURA_DEBIT_IZIN=100        # batas debit limbah (m3/hari) sesuai izin
+GAPURA_KAPASITAS_TPS=500     # kapasitas TPS B3 (kg)
+```
+```bash
+php artisan migrate                       # hanya MEMBUAT tabel baru; karyawans/divisis/jabatans/settings tidak diubah
+php artisan storage:link                  # untuk foto temuan cemaran
+php artisan gapura:sync-users --umum=NIK_ADMIN1 --umum=NIK_ADMIN2   # akun dari tabel karyawans
+php artisan serve
+```
+Login: **username = NIK, password awal = NIK** (segera ganti lewat menu "Ganti password" di Beranda).
+NIK yang diberi `--umum` menjadi admin Bagian Umum (bisa ACC SPPD & membuka Monitoring Lingkungan).
+Jalankan `gapura:sync-users` lagi kapan saja untuk menambah karyawan baru (akun lama tidak ditimpa).
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+## Alur SPPD
+1. Pegawai mengajukan SPPD (data diri otomatis dari `karyawans`; tujuan, keperluan, rombongan, dan **perusahaan tujuan bisa ditambah dinamis**).
+2. Bagian Umum membuka SPPD → **ACC / Revisi / Tolak** (nomor surat otomatis, bisa diubah).
+3. Revisi/Tolak muncul di Beranda & detail pemohon beserta catatan; pemohon memperbaiki lalu ajukan ulang.
+4. Setelah ACC, pemohon bisa **Cetak** (A4). Blok pengesahan no. 1 (PT Mitratani Dua Tujuh) dan no. 2+ (perusahaan tujuan) dikosongkan untuk TTD & stempel basah.
+5. QR di surat membuka halaman publik `/verifikasi/{token}` → "TELAH DIVALIDASI" (atau "TIDAK VALID" bila dibatalkan).
+Penandatangan (Erison Caesar, Sekretaris Perusahaan) bisa diganti lewat tabel `settings`
+(key `sppd_ttd_nama`, `sppd_ttd_jabatan`) atau `config/gapura.php`.
 
-## Contributing
+## Catatan
+- Ganti `public/images/logo.png` dengan logo asli beresolusi tinggi (bawaan dipotong dari gambar contoh, agak buram).
+- Daftar master (area/parameter cemaran, jenis limbah B3, dll) ada di `config/gapura.php`.
+- Tailwind/Alpine/Chart.js dimuat via CDN agar tanpa `npm build`; untuk produksi tanpa internet, unduh & host lokal.
+- Kode ditulis tanpa bisa dijalankan di lingkungan pembuatnya (tanpa PHP) — jalankan `php artisan migrate` & uji alur sekali sebelum dipakai.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## Akun administrator (untuk pengembangan)
+```bash
+php artisan tinker
+>>> App\Models\User::updateOrCreate(['nik'=>'administrator@gmail.com'],['name'=>'Administrator','password'=>'password','role_id'=>App\Models\Role::where('slug','super_admin')->value('id')]);
+```
+Login `administrator@gmail.com` / `password` (Super Admin). Ganti password sebelum dipakai sungguhan.
 
-## Code of Conduct
+## Roles & izin
+Tiga role bawaan: **Super Admin** (semua izin), **Bagian Umum** (proses SPPD + monitoring lingkungan + log aktivitas), **Pegawai** (ajukan SPPD).
+Menu **Roles** untuk membuat role baru dan mencentang izin; menu **User** untuk mengatur role tiap akun;
+menu **Log Aktivitas** merekam login, SPPD, data lingkungan, import, user & role.
+Setelah `php artisan migrate`, akun lama otomatis dipetakan (role `umum` -> Bagian Umum, `administrator@gmail.com` -> Super Admin, sisanya Pegawai).
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## Import data lingkungan
+Tombol **Import** ada di setiap tabel (IPAL, Limbah Masuk/Keluar B3, Organik, Domestik) dan di Checklist Cemaran B3.
+Mendukung `.xlsx` (butuh ekstensi PHP `zip`, sudah aktif di XAMPP) dan `.csv`. Judul kolom dikenali otomatis sehingga Excel lama bisa dipakai;
+untuk file `.xls` lama simpan ulang sebagai `.xlsx`. Template CSV bisa diunduh dari halaman import.
+Checklist TPS B3 diisi lewat form (tidak bisa diimpor); foto temuan cemaran tidak ikut diimpor.

@@ -1,32 +1,21 @@
 <?php
-
 namespace App\Models;
-
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Database\Factories\UserFactory;
-use Illuminate\Database\Eloquent\Attributes\Fillable;
-use Illuminate\Database\Eloquent\Attributes\Hidden;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password'])]
-#[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
-    /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    protected $table = 'akun_users';
+    protected $guarded = [];
+    protected $hidden = ['password', 'remember_token'];
+    protected $casts = ['password' => 'hashed'];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
-    protected function casts(): array
+    public function karyawan() { return $this->belongsTo(Karyawan::class, 'karyawan_id'); }
+    public function peran()    { return $this->belongsTo(Role::class, 'role_id'); } // bukan "role" agar tidak bentrok dengan kolom lama `role`
+
+    public function izin(string $p): bool
     {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
+        $perms = $this->peran?->permissions ?? [];
+        return in_array('*', $perms, true) || in_array($p, $perms, true);
     }
+    public function isUmum(): bool { return $this->izin('sppd.semua'); }
 }
