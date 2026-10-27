@@ -1,6 +1,6 @@
 <?php
-use App\Http\Controllers\{ActivityController, AuthController, HomeController, ImportController, LingkunganController, LogController, RoleController, SppdController, UserController};
-use App\Http\Middleware\Izin;
+use App\Http\Controllers\{ActivityController, AuthController, HomeController, ImportController, LingkunganController, LogController, NotifikasiController, RoleController, SppdController, UserController};
+use App\Http\Middleware\{Izin, Penyetuju};
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn() => redirect()->route('home'));
@@ -16,7 +16,12 @@ Route::middleware('auth')->group(function () {
     // SPPD
     Route::get('/sppd/{sppd}/cetak', [SppdController::class, 'cetak'])->name('sppd.cetak');
     Route::resource('sppd', SppdController::class);
-    Route::post('/sppd/{sppd}/keputusan', [SppdController::class, 'keputusan'])->name('sppd.keputusan')->middleware(Izin::class . ':sppd.setujui');
+    Route::post('/sppd/{sppd}/keputusan', [SppdController::class, 'keputusan'])->name('sppd.keputusan')->middleware(Penyetuju::class); // hanya role Penyetuju
+
+    // Notifikasi (lonceng di header)
+    Route::get('/notifikasi', [NotifikasiController::class, 'index'])->name('notifikasi');
+    Route::get('/notifikasi/{id}/buka', [NotifikasiController::class, 'buka'])->whereNumber('id')->name('notifikasi.buka');
+    Route::post('/notifikasi/baca-semua', [NotifikasiController::class, 'bacaSemua'])->name('notifikasi.baca');
 
     // Monitoring Lingkungan
     Route::prefix('lingkungan')->middleware(Izin::class . ':lingkungan.lihat')->group(function () {
@@ -40,7 +45,7 @@ Route::middleware('auth')->group(function () {
         });
         Route::get('/cemaran/{id}', [LingkunganController::class, 'cemaranShow'])->whereNumber('id')->name('cemaran.show');
 
-        Route::middleware(Izin::class . ':lingkungan.import')->prefix('import')->group(function () {
+        Route::middleware(Izin::class . ':lingkungan.import,lingkungan.kelola')->prefix('import')->group(function () {
             Route::get('/{key}', [ImportController::class, 'form'])->name('import.form');
             Route::get('/{key}/template', [ImportController::class, 'template'])->name('import.template');
             Route::post('/{key}', [ImportController::class, 'store'])->name('import.store');
@@ -50,6 +55,7 @@ Route::middleware('auth')->group(function () {
     // Administrasi
     Route::middleware(Izin::class . ':user.kelola')->group(function () {
         Route::post('/users/sinkron', [UserController::class, 'sinkron'])->name('users.sinkron');
+        Route::post('/users/{user}/password', [UserController::class, 'lihatPassword'])->name('users.password'); // khusus Super Admin
         Route::resource('users', UserController::class)->except('show');
     });
     Route::middleware(Izin::class . ':role.kelola')->resource('roles', RoleController::class)->except('show');

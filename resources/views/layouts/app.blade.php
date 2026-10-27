@@ -2,7 +2,11 @@
 <html lang="id">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>@yield('title', 'GAPURA') · GAPURA</title>
+<title>@yield('title', 'GAPURA')@unless(request()->routeIs('home')) · GAPURA @endunless</title>
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<link rel="icon" type="image/png" href="{{ asset('images/favicon.png') }}">
+<link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
+<link rel="apple-touch-icon" href="{{ asset('images/favicon.png') }}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
@@ -82,7 +86,34 @@ colors:{forest:{DEFAULT:'#0f2a1d',600:'#15803d'},leaf:{DEFAULT:'#16a34a',100:'#d
   <header class="sticky top-0 z-20 flex items-center gap-3 border-b border-gray-200/80 bg-white/90 px-4 py-2.5 backdrop-blur sm:px-8">
     <button @click="nav=true" class="rounded-lg border border-gray-200 p-2 lg:hidden" aria-label="Buka menu"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
     <div class="leading-tight"><div class="text-[15px] font-bold">{{ $grup }}</div><div class="hidden text-xs text-forest/55 sm:block">{{ config('gapura.perusahaan.nama') }} · Bagian Umum</div></div>
-    <div class="relative ml-auto" x-data="{o:false}" @click.outside="o=false">
+    <div class="ml-auto flex items-center gap-2">
+    {{-- lonceng notifikasi --}}
+    <div class="relative" x-data="notif()" x-init="muat();setInterval(()=>muat(true),30000)" @click.outside="o=false">
+      <button @click="o=!o;if(o)muat()" class="relative flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-forest/70 transition hover:border-leaf/50 hover:text-forest" aria-label="Notifikasi">
+        <x-icon n="bell" c="h-5 w-5"/>
+        <span x-show="unread>0" x-cloak x-text="unread>9?'9+':unread" class="absolute -right-1.5 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-extrabold text-white ring-2 ring-white"></span>
+      </button>
+      <div x-show="o" x-cloak x-transition.origin.top.right class="absolute right-0 mt-2 w-[22rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl">
+        <div class="flex items-center justify-between border-b border-gray-100 px-4 py-3"><span class="text-sm font-bold">Notifikasi</span>
+          <button type="button" x-show="unread>0" @click="bacaSemua()" class="text-xs font-semibold text-leaf hover:underline">Tandai semua dibaca</button></div>
+        <div class="max-h-96 overflow-y-auto">
+          <template x-for="n in items" :key="n.id">
+            <a :href="n.url" class="flex gap-3 border-b border-gray-50 px-4 py-3 transition hover:bg-green-50/50" :class="n.baru?'bg-green-50/40':''">
+              <span class="mt-1 h-2 w-2 shrink-0 rounded-full" :class="n.baru?(n.tipe==='disetujui'?'bg-leaf':(n.tipe==='diajukan'?'bg-amber-500':'bg-red-500')):'bg-gray-300'"></span>
+              <span class="min-w-0 leading-snug"><span class="block text-[13px] font-bold" x-text="n.judul"></span><span class="mt-0.5 block text-xs text-forest/65" x-text="n.pesan"></span><span class="mt-1 block text-[11px] text-forest/40" x-text="n.waktu"></span></span>
+            </a>
+          </template>
+          <p x-show="!items.length" class="px-4 py-10 text-center text-sm text-forest/45">Belum ada notifikasi.</p>
+        </div>
+      </div>
+      {{-- toast saat ada notifikasi baru --}}
+      <div x-show="toast" x-cloak x-transition class="fixed bottom-5 right-5 z-50 w-80 max-w-[calc(100vw-2.5rem)] rounded-2xl border border-green-200 bg-white p-4 shadow-2xl">
+        <a :href="toast?.url" class="flex gap-3"><span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-green-50 text-leaf"><x-icon n="bell" c="h-5 w-5"/></span>
+          <span class="leading-snug"><span class="block text-sm font-bold" x-text="toast?.judul"></span><span class="block text-xs text-forest/65" x-text="toast?.pesan"></span></span></a>
+        <button type="button" @click="toast=null" class="absolute right-3 top-2 text-forest/40 hover:text-forest" aria-label="Tutup">✕</button>
+      </div>
+    </div>
+    <div class="relative" x-data="{o:false}" @click.outside="o=false">
       <button @click="o=!o" class="flex items-center gap-2.5 rounded-xl border border-gray-200 bg-white py-1.5 pl-1.5 pr-3 transition hover:border-leaf/50">
         <span class="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-lime to-leaf text-xs font-extrabold text-forest">{{ strtoupper(substr($u->name,0,1)) }}</span>
         <span class="hidden text-left leading-tight sm:block"><span class="block text-[13px] font-semibold">{{ \Illuminate\Support\Str::limit($u->name,22) }}</span><span class="block text-[11px] text-forest/55">{{ $u->peran?->nama }}</span></span>
@@ -93,6 +124,7 @@ colors:{forest:{DEFAULT:'#0f2a1d',600:'#15803d'},leaf:{DEFAULT:'#16a34a',100:'#d
         <form method="post" action="{{ route('logout') }}" class="border-t border-gray-100 pt-2">@csrf<button class="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm font-semibold text-red-600 hover:bg-red-50"><x-icon n="logout"/>Keluar</button></form>
       </div>
     </div>
+    </div>
   </header>
   <main class="mx-auto max-w-6xl rise p-4 sm:p-8">
     @if(session('ok'))<div x-data="{o:true}" x-show="o" x-transition class="mb-5 flex items-center justify-between rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-900"><span class="flex items-center gap-2"><x-icon n="check"/>{{ session('ok') }}</span><button @click="o=false" aria-label="Tutup">✕</button></div>@endif
@@ -100,4 +132,12 @@ colors:{forest:{DEFAULT:'#0f2a1d',600:'#15803d'},leaf:{DEFAULT:'#16a34a',100:'#d
     @yield('content')
   </main>
 </div>
+<script>
+function notif(){return{o:false,unread:0,items:[],last:null,toast:null,
+ async muat(poll){try{const r=await fetch('{{ route('notifikasi') }}',{headers:{'Accept':'application/json'},credentials:'same-origin'});if(!r.ok)return;const d=await r.json();
+  if(poll&&this.last!==null&&d.unread>this.last){this.toast=d.items.find(i=>i.baru)||null;setTimeout(()=>this.toast=null,7000)}
+  this.last=d.unread;this.unread=d.unread;this.items=d.items}catch(e){}},
+ async bacaSemua(){try{await fetch('{{ route('notifikasi.baca') }}',{method:'POST',headers:{'X-CSRF-TOKEN':document.querySelector('meta[name=csrf-token]').content,'Accept':'application/json'},credentials:'same-origin'});this.items=this.items.map(i=>({...i,baru:false}));this.unread=0;this.last=0}catch(e){}}
+}}
+</script>
 </body></html>

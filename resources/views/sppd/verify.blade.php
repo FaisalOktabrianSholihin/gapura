@@ -1,4 +1,5 @@
 <!DOCTYPE html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Verifikasi SPPD</title>
+<link rel="icon" type="image/png" href="{{ asset('images/favicon.png') }}"><link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
 <script src="https://cdn.tailwindcss.com"></script>
 <style>@keyframes pop{0%{transform:scale(.4);opacity:0}70%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}.pop{animation:pop .55s cubic-bezier(.3,1.4,.5,1) both}@media (prefers-reduced-motion:reduce){.pop{animation:none}}</style></head>
 <body class="min-h-screen bg-slate-100 p-5 text-slate-800"><div class="mx-auto mt-6 max-w-md overflow-hidden rounded-2xl bg-white shadow-xl">

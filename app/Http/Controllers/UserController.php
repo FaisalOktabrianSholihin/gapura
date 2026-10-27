@@ -1,5 +1,7 @@
 <?php
+
 namespace App\Http\Controllers;
+
 use App\Models\{Karyawan, Role, User};
 use App\Support\Aktivitas;
 use Illuminate\Http\Request;
@@ -17,22 +19,37 @@ class UserController extends Controller
         return view('admin.users-index', ['users' => $users, 'roles' => Role::orderBy('id')->get()]);
     }
 
-    private function form(User $user) { return view('admin.users-form', ['user' => $user, 'roles' => Role::orderBy('id')->get(),
-        'karyawans' => Karyawan::orderBy('nama')->get(['nik', 'nama'])->pluck('nama', 'nik')]); }
+    private function form(User $user)
+    {
+        return view('admin.users-form', [
+            'user' => $user,
+            'roles' => Role::orderBy('id')->get(),
+            'karyawans' => Karyawan::orderBy('nama')->get(['nik', 'nama'])->pluck('nama', 'nik')
+        ]);
+    }
 
-    public function create() { return $this->form(new User); }
-    public function edit(User $user) { return $this->form($user); }
+    public function create()
+    {
+        return $this->form(new User);
+    }
+    public function edit(User $user)
+    {
+        return $this->form($user);
+    }
 
     private function simpan(Request $r, User $user)
     {
         $r->validate([
-            'nik' => ['required', 'string', 'max:100', Rule::unique('akun_users', 'nik')->ignore($user->id)], 'name' => 'required|string|max:150',
-            'role_id' => 'required|exists:roles,id', 'password' => ($user->exists ? 'nullable' : 'required') . '|min:6',
+            'nik' => ['required', 'string', 'max:100', Rule::unique('akun_users', 'nik')->ignore($user->id)],
+            'name' => 'required|string|max:150',
+            'role_id' => 'required|exists:roles,id',
+            'password' => ($user->exists ? 'nullable' : 'required') . '|min:6',
         ], ['nik.unique' => 'Username (NIK/email) sudah dipakai.']);
-        $user->nik = $r->nik; $user->name = $r->name;
+        $user->nik = $r->nik;
+        $user->name = $r->name;
         $user->karyawan_id = Karyawan::where('nik', $r->nik)->value('id');
         if (!($user->exists && $user->id === auth()->id())) $user->role_id = $r->role_id; // tidak bisa mengubah role sendiri
-        if ($r->filled('password')) $user->password = $r->password;
+        if ($r->filled('password')) $user->aturPassword($r->password);
         $user->save();
         return $user;
     }
@@ -57,6 +74,15 @@ class UserController extends Controller
         Aktivitas::catat('hapus', 'User', "Menghapus user {$user->name} ({$user->nik})");
         $user->delete();
         return back()->with('ok', 'User dihapus.');
+    }
+
+    // Khusus Super Admin: tampilkan password user (didekripsi dari salinan terenkripsi). Setiap akses dicatat di Log Aktivitas.
+    public function lihatPassword(User $user)
+    {
+        abort_unless(auth()->user()->isSuperAdmin(), 403, 'Khusus Super Admin.');
+        Aktivitas::catat('lihat', 'User', "Melihat password user {$user->name} ({$user->nik})");
+        $p = $user->passwordTercatat();
+        return response()->json(['ada' => $p !== null, 'password' => $p]);
     }
 
     public function sinkron()

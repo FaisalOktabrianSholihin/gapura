@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Masuk · GAPURA</title>
+<link rel="icon" type="image/png" href="{{ asset('images/favicon.png') }}"><link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <script>tailwind.config={theme:{extend:{fontFamily:{sans:['"Plus Jakarta Sans"','sans-serif']},colors:{forest:'#0f2a1d',leaf:'#16a34a',lime:'#a3e635'}}}}</script>

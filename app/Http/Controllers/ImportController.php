@@ -1,6 +1,6 @@
 <?php
 namespace App\Http\Controllers;
-use App\Support\{Aktivitas, Sheet};
+use App\Support\{Aktivitas, Sheet, XlsxWriter};
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -26,15 +26,69 @@ class ImportController extends Controller
         return view('lingkungan.import', ['key' => $key, 'judul' => $this->judul($key), 'kembali' => $this->kembali($key), 'fields' => $this->fields($key)]);
     }
 
-    public function template(string $key)
+    // Template Excel (.xlsx) berformat: judul kolom, dropdown pilihan, format tanggal, plus sheet "Petunjuk". ?format=csv untuk CSV lama.
+    public function template(Request $r, string $key)
     {
         $fields = $this->fields($key);
-        return response()->streamDownload(function () use ($key, $fields) {
-            $o = fopen('php://output', 'w'); fwrite($o, "\xEF\xBB\xBF");
-            fputcsv($o, array_column($fields, 1), ';', '"', '');
-            if ($key === 'cemaran') foreach (config('gapura.cemaran_items') as $i => $it) fputcsv($o, [$i + 1, $it[1], 'bersih', '', ''], ';', '"', '');
-            fclose($o);
-        }, "template-import-$key.csv", ['Content-Type' => 'text/csv; charset=UTF-8']);
+        if ($r->query('format') === 'csv') {
+            return response()->streamDownload(function () use ($key, $fields) {
+                $o = fopen('php://output', 'w'); fwrite($o, "\xEF\xBB\xBF");
+                fputcsv($o, array_column($fields, 1), ';', '"', '');
+                if ($key === 'cemaran') foreach (config('gapura.cemaran_items') as $i => $it) fputcsv($o, [$i + 1, $it[1], 'bersih', '', ''], ';', '"', '');
+                fclose($o);
+            }, "template-import-$key.csv", ['Content-Type' => 'text/csv; charset=UTF-8']);
+        }
+        $file = XlsxWriter::buat($this->lembarTemplate($key, $fields));
+        return response()->download($file, "template-import-$key.xlsx", ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'])->deleteFileAfterSend(true);
+    }
+
+    private function lembarTemplate(string $key, array $fields): array
+    {
+        $judul = $this->judul($key);
+        $tipeNama = fn($t) => match (true) { $t === 'date' => 'Tanggal (dd/mm/yyyy)', $t === 'time' => 'Jam (hh:mm)', $t === 'number' => 'Angka', str_starts_with($t, 'select:') => 'Pilih dari daftar', default => 'Teks' };
+        $contoh = function (array $f) {
+            [$col, , $t] = $f;
+            return match (true) { $t === 'date' => '26/10/2026', $t === 'time' => '08:00', $t === 'number' => '12,5',
+                str_starts_with($t, 'select:') => (string) (config('gapura.' . substr($t, 7))[0] ?? ''), $col === 'keterangan' => '-', default => 'contoh' };
+        };
+
+        // ---- sheet "Data"
+        if ($key === 'cemaran') {
+            $rows = [array_column($fields, 1)];
+            foreach (config('gapura.cemaran_items') as $i => $it) $rows[] = [$i + 1, $it[1], 'bersih', '', ''];
+            $data = ['name' => 'Data', 'rows' => $rows, 'header' => [0 => 'wajib', 1 => 'wajib', 2 => 'wajib', 3 => 'opsional', 4 => 'opsional'],
+                'widths' => [6, 62, 14, 32, 32], 'list' => [2 => ['bersih', 'tercemar']], 'listTo' => count($rows)];
+        } else {
+            $head = []; $hdr = []; $widths = []; $fmt = []; $list = [];
+            foreach ($fields as $i => $f) {
+                [$col, $label, $t] = $f;
+                $head[] = $label; $hdr[$i] = in_array('req', $f) ? 'wajib' : 'opsional';
+                $widths[] = match (true) { $t === 'date' => 16, $t === 'time' => 10, $t === 'number' => 14, str_starts_with($t, 'select:') => 28, $col === 'keterangan' => 36, default => 24 };
+                if ($t === 'date' || $t === 'time') $fmt[$i] = $t;
+                if (str_starts_with($t, 'select:')) $list[$i] = config('gapura.' . substr($t, 7));
+            }
+            $data = ['name' => 'Data', 'rows' => [$head], 'header' => $hdr, 'widths' => $widths, 'format' => $fmt, 'list' => $list];
+        }
+
+        // ---- sheet "Petunjuk"
+        $B = XlsxWriter::S_BOLD;
+        $p = [["Petunjuk pengisian — $judul"], [], [['Cara pakai', $B]],
+            [['1. Isi data pada sheet "Data" mulai baris ke-2. Jangan mengubah atau menghapus judul kolom di baris 1.', 0]],
+            [['2. Judul kolom hijau = wajib diisi, judul abu-abu = opsional.', 0]],
+            [['3. Tanggal: dd/mm/yyyy (mis. 26/10/2026) atau tanggal biasa Excel. Jam: hh:mm. Angka: boleh memakai koma atau titik desimal.', 0]],
+            [['4. Kolom yang memiliki panah dropdown: pilih salah satu nilai dari daftar.', 0]],
+            [['5. Baris kosong dilewati. Setelah selesai, simpan sebagai .xlsx lalu unggah di halaman Import. Baris yang salah dilaporkan lengkap dengan nomor barisnya.', 0]]];
+        if ($key === 'cemaran') $p[] = [['6. Satu file = satu pemeriksaan. Tanggal, petugas, dan shift diisi pada form Import. Parameter yang tidak ada di file otomatis berstatus bersih.', 0]];
+        $p[] = [];
+        $p[] = [['Kolom', $B], ['Wajib?', $B], ['Format', $B], ['Pilihan nilai', $B]];
+        foreach ($fields as $f) {
+            [$col, $label, $t] = $f;
+            $p[] = [$label, in_array('req', $f) ? 'Wajib' : 'Opsional', $tipeNama($t), str_starts_with($t, 'select:') ? implode(', ', config('gapura.' . substr($t, 7))) : ''];
+        }
+        if ($key !== 'cemaran') { $p[] = []; $p[] = [['Contoh pengisian', $B], implode('  |  ', array_map($contoh, $fields))]; }
+        $petunjuk = ['name' => 'Petunjuk', 'plain' => true, 'rows' => $p, 'widths' => [30, 12, 24, 80]];
+
+        return [$data, $petunjuk];
     }
 
     public function store(Request $r, string $key)

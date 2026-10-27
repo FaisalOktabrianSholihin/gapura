@@ -1,7 +1,7 @@
 @extends('layouts.app')
 @section('title','Detail SPPD')
 @section('content')
-@php $umum=auth()->user()->izin('sppd.setujui'); $dl=fn($t)=>$s->daftar($t); @endphp
+@php $umum=auth()->user()->isPenyetuju(); $dl=fn($t)=>$s->daftar($t); @endphp
 <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
   <div><a href="{{ route('sppd.index') }}" class="text-sm text-leaf hover:underline">← Daftar SPPD</a>
     <h1 class="font-display mt-1 text-2xl font-bold text-forest">{{ $s->nomor ?? 'SPPD (belum bernomor)' }}</h1></div>
@@ -9,7 +9,7 @@
     @if($s->status==='disetujui')<a target="_blank" href="{{ route('sppd.cetak',$s) }}" class="btn">Cetak surat</a>@endif
     @if($s->bisa_diubah && $s->user_id===auth()->id())<a href="{{ route('sppd.edit',$s) }}" class="btn-ghost">{{ $s->status==='diajukan'?'Ubah':'Revisi' }}</a>@endif</div>
 </div>
-@if(in_array($s->status,['revisi','ditolak']) && $s->catatan_admin)<div class="mb-4 rounded-xl border border-orange-200 bg-orange-50 p-4 text-sm"><b>Catatan Bagian Umum:</b> {{ $s->catatan_admin }}</div>@endif
+@if(in_array($s->status,['revisi','ditolak']) && $s->catatan_admin)<div class="mb-4 rounded-xl border border-orange-200 bg-orange-50 p-4 text-sm"><b>Catatan Penyetuju:</b> {{ $s->catatan_admin }}</div>@endif
 <div class="grid gap-5 lg:grid-cols-3">
   <div class="card lg:col-span-2"><dl class="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
     @foreach([['Nama',$s->nama],['NIK',$s->nik],['Jabatan',$s->jabatan],['Divisi',$s->divisi],['No. Surat Tugas',$s->nomor_surat_tugas],['Jenis Perjalanan',$s->jenis_perjalanan],
@@ -23,7 +23,7 @@
 
   @if($umum)
   <form method="post" action="{{ route('sppd.keputusan',$s) }}" class="card h-fit space-y-3" x-data="{aksi:'setuju'}">@csrf
-    <h2 class="font-display font-bold text-forest">Keputusan Bagian Umum</h2>
+    <h2 class="font-display font-bold text-forest">Keputusan Penyetuju</h2>
     <div class="grid grid-cols-3 gap-1 rounded-lg bg-forest/5 p-1 text-xs font-semibold">
       @foreach(['setuju'=>'ACC','revisi'=>'Revisi','tolak'=>'Tolak'] as $v=>$l)
       <label class="cursor-pointer rounded-md py-1.5 text-center transition" :class="aksi==='{{ $v }}'?'bg-white shadow text-forest':'text-forest/60'"><input type="radio" class="sr-only" name="aksi" value="{{ $v }}" x-model="aksi">{{ $l }}</label>@endforeach</div>
@@ -35,7 +35,7 @@
   @else
   <div class="card h-fit text-sm"><h2 class="font-display mb-2 font-bold text-forest">Status</h2>
     @if($s->status==='disetujui')<p>Disetujui {{ $s->approved_at?->translatedFormat('j F Y') }}. Silakan cetak surat lalu minta tanda tangan basah &amp; stempel di instansi tujuan.</p>
-    @elseif($s->status==='diajukan')<p>Menunggu persetujuan Bagian Umum.</p>@else<p>Perbaiki sesuai catatan lalu ajukan ulang.</p>@endif</div>
+    @elseif($s->status==='diajukan')<p>Menunggu persetujuan Penyetuju. Anda akan mendapat notifikasi setelah diputuskan.</p>@else<p>Perbaiki sesuai catatan lalu ajukan ulang.</p>@endif</div>
   @endif
 </div>
 @endsection

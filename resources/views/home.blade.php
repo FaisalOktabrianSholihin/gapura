@@ -21,12 +21,17 @@
   <span><b class="text-orange-900">SPPD Anda {{ $p->status==='ditolak'?'ditolak':'perlu revisi' }}.</b> <span class="text-orange-900/80">{{ \Illuminate\Support\Str::limit($p->catatan_admin,140) }}</span></span></a>
 @endforeach
 
-{{-- statistik --}}
+@if($menunggu>0)
+<a href="{{ route('sppd.index',['status'=>'diajukan']) }}" class="mt-4 flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm transition hover:border-amber-400"><x-icon n="clock" c="h-5 w-5 text-amber-600"/>
+  <span class="flex-1"><b class="text-amber-900">{{ $menunggu }} SPPD menunggu persetujuan Anda.</b> <span class="text-amber-900/75">Klik untuk meninjau dan memutuskan.</span></span><x-icon n="arrow" c="h-4 w-4 text-amber-700"/></a>
+@endif
+
+{{-- statistik (klik kartu untuk melihat suratnya) --}}
 <div class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
- @foreach([['Total SPPD',$stat['total'],'Seluruh pengajuan','file','#22c55e','bg-green-50 text-green-700'],['Disetujui',$stat['disetujui'],'Siap dicetak','check','#14b8a6','bg-teal-50 text-teal-700'],
-  ['Menunggu',$stat['diajukan'],'Belum diputuskan','clock','#f59e0b','bg-amber-50 text-amber-600'],['Revisi / Ditolak',$stat['revisi'],'Perlu tindak lanjut','alert','#f43f5e','bg-rose-50 text-rose-600']] as [$l,$n,$d,$i,$c,$t])
- <div class="stat" style="--c:{{ $c }}"><div class="flex items-start justify-between"><div class="text-xs font-semibold text-forest/60">{{ $l }}</div><span class="flex h-10 w-10 items-center justify-center rounded-xl {{ $t }}"><x-icon :n="$i" c="h-5 w-5"/></span></div>
-  <div class="mt-1 text-3xl font-extrabold" x-data="{v:0}" x-init="if({{ $n }}>0){let t=setInterval(()=>{v++;if(v>={{ $n }})clearInterval(t)},Math.max(12,600/{{ max($n,1) }}))}" x-text="v">0</div><div class="mt-1 text-xs text-forest/45">{{ $d }}</div></div>
+ @foreach([['Total SPPD',$stat['total'],'Seluruh pengajuan','file','#22c55e','bg-green-50 text-green-700','total'],['Disetujui',$stat['disetujui'],'Siap dicetak','check','#14b8a6','bg-teal-50 text-teal-700','disetujui'],
+  ['Menunggu',$stat['diajukan'],'Belum diputuskan','clock','#f59e0b','bg-amber-50 text-amber-600','diajukan'],['Revisi / Ditolak',$stat['revisi'],'Perlu tindak lanjut','alert','#f43f5e','bg-rose-50 text-rose-600','revisi']] as [$l,$n,$d,$i,$c,$t,$tk])
+ <a href="{{ $tautan[$tk] }}" class="stat group block cursor-pointer" style="--c:{{ $c }}" title="Lihat surat: {{ $l }}"><div class="flex items-start justify-between"><div class="text-xs font-semibold text-forest/60">{{ $l }}</div><span class="flex h-10 w-10 items-center justify-center rounded-xl {{ $t }}"><x-icon :n="$i" c="h-5 w-5"/></span></div>
+  <div class="mt-1 text-3xl font-extrabold" x-data="{v:0}" x-init="if({{ $n }}>0){let t=setInterval(()=>{v++;if(v>={{ $n }})clearInterval(t)},Math.max(12,600/{{ max($n,1) }}))}" x-text="v">0</div><div class="mt-1 flex items-center justify-between text-xs text-forest/45"><span>{{ $d }}</span><span class="flex items-center gap-1 font-semibold text-leaf opacity-0 transition group-hover:opacity-100">Lihat surat <x-icon n="arrow" c="h-3.5 w-3.5"/></span></div></a>
  @endforeach
 </div>
 
