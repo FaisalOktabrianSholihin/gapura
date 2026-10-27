@@ -21,7 +21,7 @@
   <div class="mt-5 border-t border-forest/10 pt-4"><div class="mb-2 text-xs text-forest/55">Fasilitas kendaraan dinas</div>
     <div class="grid gap-1 text-sm sm:grid-cols-2">@foreach(config('gapura.fasilitas') as $k=>$l)<div class="flex justify-between gap-2"><span>{{ $l }}</span><b>{{ ($s->fasilitas[$k]??'tidak')==='ya'?'Ya':'Tidak' }}</b></div>@endforeach</div></div></div>
 
-  @if($umum)
+  @if($umum && $s->status==='diajukan')
   <form method="post" action="{{ route('sppd.keputusan',$s) }}" class="card h-fit space-y-3" x-data="{aksi:'setuju'}">@csrf
     <h2 class="font-display font-bold text-forest">Keputusan Penyetuju</h2>
     <div class="grid grid-cols-3 gap-1 rounded-lg bg-forest/5 p-1 text-xs font-semibold">
@@ -35,7 +35,8 @@
   @else
   <div class="card h-fit text-sm"><h2 class="font-display mb-2 font-bold text-forest">Status</h2>
     @if($s->status==='disetujui')<p>Disetujui {{ $s->approved_at?->translatedFormat('j F Y') }}. Silakan cetak surat lalu minta tanda tangan basah &amp; stempel di instansi tujuan.</p>
-    @elseif($s->status==='diajukan')<p>Menunggu persetujuan Penyetuju. Anda akan mendapat notifikasi setelah diputuskan.</p>@else<p>Perbaiki sesuai catatan lalu ajukan ulang.</p>@endif</div>
+    @elseif($s->status==='diajukan')<p>Menunggu persetujuan Penyetuju. Anda akan mendapat notifikasi setelah diputuskan.</p>
+    @elseif($umum)<p>Sudah diputuskan: <b>{{ $s->status_label }}</b>. Keputusan bersifat final; menunggu pemohon bila perlu mengajukan ulang.</p>@else<p>Perbaiki sesuai catatan lalu ajukan ulang.</p>@endif</div>
   @endif
 </div>
 @endsection

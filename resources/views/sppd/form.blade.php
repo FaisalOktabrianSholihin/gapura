@@ -4,6 +4,9 @@
 @php
   $init = fn($t, $min) => old($t, $sppd->exists ? $sppd->daftar($t)->all() : ($min ? [''] : []));
   $lists = ['tujuan'=>$init('tujuan',1),'keperluan'=>$init('keperluan',1),'rombongan'=>$init('rombongan',0),'perusahaan'=>$init('perusahaan',1)];
+  $orang = \App\Models\Karyawan::with(['jabatan','divisi'])->orderBy('nama')->get()->map(fn($o)=>[
+      'id'=>$o->id,'n'=>$o->nama,'nik'=>(string)$o->nik,'j'=>$o->jabatan?->nama_jabatan,'d'=>$o->divisi?->nama_divisi,
+      'q'=>mb_strtolower($o->nama.' '.$o->nik.' '.$o->jabatan?->nama_jabatan.' '.$o->divisi?->nama_divisi)])->values();
   $nama = $sppd->exists ? $sppd->nama : ($k->nama ?? auth()->user()->name);
   $nik  = $sppd->exists ? $sppd->nik : ($k->nik ?? auth()->user()->nik);
   $jab  = $sppd->exists ? $sppd->jabatan : ($k?->jabatan?->nama_jabatan);
@@ -12,9 +15,8 @@
 <h1 class="font-display mb-1 text-2xl font-bold text-forest">{{ $sppd->exists ? 'Revisi SPPD' : 'Ajukan Surat Perjalanan Dinas' }}</h1>
 <p class="text-sm text-forest/55">Lengkapi data perjalanan dinas. Pengajuan akan diteruskan ke Penyetuju.</p>
 @if($sppd->catatan_admin && $sppd->exists)<div class="mb-4 mt-3 rounded-xl border border-orange-200 bg-orange-50 p-3 text-sm"><b>Catatan Penyetuju:</b> {{ $sppd->catatan_admin }}</div>@endif
-<form method="post" action="{{ $sppd->exists ? route('sppd.update',$sppd) : route('sppd.store') }}" class="mt-4 space-y-5" x-data="sppdForm(@js($lists))">
+<form method="post" action="{{ $sppd->exists ? route('sppd.update',$sppd) : route('sppd.store') }}" class="mt-4 space-y-5" x-data="sppdForm(@js($lists), @js($orang))">
   @csrf @if($sppd->exists) @method('PUT') @endif
-  <datalist id="dl-karyawan">@foreach(\App\Models\Karyawan::orderBy('nama')->pluck('nama') as $n)<option value="{{ $n }}">@endforeach</datalist>
 
   {{-- data pemohon & perjalanan --}}
   <div class="card grid gap-4 sm:grid-cols-2">
@@ -83,9 +85,11 @@
 
 <script>
 // Daftar dinamis: tiap baris punya id unik (kunci x-for) supaya penambahan/penghapusan baris selalu tepat.
-function sppdForm(raw){
+function sppdForm(raw, orang){
   let n=0; const mk=a=>(a||[]).map(v=>({id:++n,v:v??''})); const wajib=['tujuan','keperluan','perusahaan'];
   return {
+    orang:orang,
+    cari(q){ const s=(q||'').toLowerCase().trim(); return (s?this.orang.filter(o=>o.q.includes(s)):this.orang).slice(0,50); },
     lists:{tujuan:mk(raw.tujuan),keperluan:mk(raw.keperluan),rombongan:mk(raw.rombongan),perusahaan:mk(raw.perusahaan)},
     add(k){this.lists[k].push({id:++n,v:''})},
     del(k,i){this.lists[k].splice(i,1); if(!this.lists[k].length && wajib.includes(k)) this.lists[k].push({id:++n,v:''})}

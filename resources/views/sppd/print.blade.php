@@ -6,13 +6,13 @@
  *{box-sizing:border-box} body{font:11px/1.35 Tahoma,Verdana,sans-serif;color:#000;margin:0;background:#e5e7eb}
  .page{width:210mm;min-height:297mm;margin:0 auto;background:#fff;padding:14mm 16mm}
  .bar{position:fixed;top:10px;right:10px;display:flex;gap:6px} .bar button{padding:8px 14px;border:0;border-radius:6px;background:#0f3d2a;color:#fff;font-weight:600;cursor:pointer}
- .hd{display:flex;align-items:flex-start;margin-bottom:6px} .hd img{height:42px} .ttl{flex:1;text-align:center;margin-right:42px}
+ .hd{display:flex;align-items:flex-start;margin-bottom:6px} .hd img{height:40px;width:auto} .ttl{flex:1;text-align:center;margin-right:71px}
  .ttl b{font-size:12px;text-decoration:underline;display:block;margin-top:4px}
  table.f td{vertical-align:top;padding:0 0 1px} table.f td:first-child{width:118px;padding-left:2px} table.f td.c{width:14px}
  ol{margin:0;padding-left:15px;list-style:none} ol li{counter-increment:n} ol li:before{content:counter(n)'. ';margin-left:-15px;display:inline-block;width:15px}
  ol{counter-reset:n} p.j{text-align:justify;margin:10px 0}
- h4{margin:12px 0 4px;font-size:11px;text-decoration:underline;padding-left:14px}
- .blk{display:flex;gap:6px;margin-bottom:6px;break-inside:avoid;align-items:flex-end} .blk>b{font-weight:400;width:12px;align-self:flex-start} .blk .bd{flex:1}
+ h4{margin:14px 0 6px;font-size:11px;font-weight:700;text-align:left;padding-left:14px}
+ .blk{display:flex;gap:6px;margin-bottom:56px;break-inside:avoid;align-items:flex-end} .blk>b{font-weight:400;width:12px;align-self:flex-start} .blk .bd{flex:1}
  .ar{display:flex;align-items:flex-end;gap:16px;margin-right:4px}
  .sg{width:150px;text-align:center} .sg .sp{height:58px;border-bottom:1px solid #000} .sg .lb{font-size:9px;margin-top:2px}
  .st{width:64px;height:64px;border:1px dashed #555;border-radius:50%;display:flex;align-items:center;justify-content:center;text-align:center;font-size:8px;line-height:1.2;color:#555}
@@ -44,7 +44,6 @@
  <p class="j">Diharapkan pihak - pihak yang berkaitan dengan keperluan Dinas tersebut dapat memberikan bantuan yang berkenaan pelaksanaan tugas ini. Selain itu untuk keperluan administrasi perjalanan dinas kami memerlukan tanda tangan, stempel, nama terang jabatan, dan nama instansi sebagai tanda bukti perusahaan dinas, dan keterangan penggunaan fasilitas kendaraan dinas dari instansi/perusahaan yang dikunjungi.</p>
 
  <h4>Pengesahan Instansi/Perusahaan yang Dikunjungi</h4>
- <p class="ket">Tanda tangan basah di atas garis; stempel basah pada lingkaran putus-putus.</p>
  @php
   $blok=collect([config('gapura.perusahaan.nama')])->merge($s->daftar('perusahaan'));
   $tglSah=($s->tanggal_terbit ?? $s->tanggal_berangkat)->translatedFormat('j F Y');
@@ -53,11 +52,8 @@
  @php $milik = $i === 0; /* nomor 1 = perusahaan penerbit (sendiri): tanggal, nama, jabatan terisi otomatis */ @endphp
  <div class="blk"><b>{{ $i+1 }}</b>
   <div class="bd"><table class="f"><tr><td style="width:50px">Tanggal</td><td class="c">:</td><td>{{ $milik ? $tglSah : '' }}</td></tr><tr><td>Nama</td><td class="c">:</td><td>{{ $milik ? $ttd['nama'] : '' }}</td></tr>
-  <tr><td>Jabatan</td><td class="c">:</td><td>{{ $milik ? $ttd['jabatan'] : '' }}</td></tr><tr><td>Instansi</td><td class="c">:</td><td>{{ $inst }}</td></tr></table></div>
-  <div class="ar">
-   <div class="sg"><div class="sp"></div><div class="lb">Tanda Tangan</div></div>
-   <div class="st"><span>Cap /<br>Stempel</span></div>
-  </div>
+  <tr><td>Jabatan</td><td class="c">:</td><td>{{ $milik ? $ttd['jabatan'] : '' }}</td></tr><tr><td>Instansi</td><td class="c">:</td><td>{{ $inst }}</td></tr>
+  <tr><td colspan="3" style="padding-top:2px">Tanda Tangan dan Cap Stempel</td></tr></table></div>
  </div>
  @endforeach
 
